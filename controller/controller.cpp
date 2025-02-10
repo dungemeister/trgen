@@ -6,7 +6,7 @@ void Controller::loop() {
     Task defaulTask;
     defaulTask.msg.command = "ping";
     defaulTask.msg.params = {"google.com"};
-    run_task(defaulTask);
+    // run_task(defaulTask);
 
     while(true) {
         Task task;
