@@ -21,11 +21,11 @@ message MainCli::handle_command() {
     else {
         msg.command = line;
     }
-    std::cout << "entered command is [" << msg.command << "]";
-    for(auto param: msg.params) {
-        std::cout << " " << param;
-    }
-    std::cout << "\n";
+    // std::cout << "entered command is [" << msg.command << "]";
+    // for(auto param: msg.params) {
+    //     std::cout << " " << param;
+    // }
+    // std::cout << "\n";
     return msg;
 }
 

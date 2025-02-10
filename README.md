@@ -23,3 +23,15 @@
     ```bash
         trgen --help
     ```
+
+## TODO
+    
+    - ping implemetation
+    - traceroute implementation
+    - traffic generator implementation
+    - list interface
+    - cli autocomplete vtush like
+    - adding vlan id
+    - netns create
+    - save in PCAP files
+    - dynamic plugin support openswitch like

@@ -6,7 +6,6 @@
 
 int main(int argc, char **argv) {
     std::cout << "Current PID - " << getpid() << "\n";
-    std::cout << "hello from trgen\n";
     MainCli cli;
     Core core;
 

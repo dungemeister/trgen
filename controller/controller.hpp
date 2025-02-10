@@ -4,8 +4,23 @@
 #include "cli.hpp"
 #include "core.hpp"
 #include <queue>
+#include <unordered_set>
+#include <unordered_map>
 
-const std::string HELP_CMD = "help";
+enum class Command {
+    help = 0,
+    ping,
+    quit,
+
+};
+
+const std::unordered_map<std::string, Command> COMMAND_MAP = {
+    {"help", Command::help},
+    {"ping", Command::ping},
+    {"quit", Command::quit},
+
+};
+
 enum task_state{
     
     RUNNING = 0,
