@@ -42,7 +42,10 @@ void Pinger::parseParams( std::vector<std::string> params) {
         }
         else
         {
-            m_dst_addr = params[i];
+            if(params[i] != "help")
+                m_dst_addr = params[i];
+            else
+                m_default_payload = false;
 
         }
     }
@@ -59,8 +62,12 @@ void Pinger::showParams() {
     std::cout << " ICMP packet size " << m_packet_size << "\n";
 }
 
-void Pinger::ping() {
+void Pinger::payload_run() {
     kernel_release k = {};
+    if(!m_default_payload) {
+        help();
+        return;
+    }
 
     if(m_kernel_release >= LINUX_ICMP_SOCKET_CAPABILITIES_RELEASE) {
         // pingUdpIcmp();

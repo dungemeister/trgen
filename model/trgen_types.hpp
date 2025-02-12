@@ -1,6 +1,42 @@
 #ifndef TRGEN_TYPES_HPP
 
 #define TRGEN_TYPES_HPP
+#include <unordered_map>
+
+struct message{
+    std::string command;
+    std::vector<std::string> params;
+};
+
+enum task_state{
+    
+    RUNNING = 0,
+    FINISHED = 1,
+    CANCELED = 2,
+};
+
+struct Task{
+    message msg;
+    task_state state;
+    Task(): state(RUNNING) {}
+};
+
+enum class Command {
+    help = 0,
+    ping,
+    traceroute,
+    quit,
+
+};
+
+const std::unordered_map<std::string, Command> COMMAND_MAP = {
+    {"help", Command::help},
+    {"ping", Command::ping},
+    {"traceroute", Command::traceroute},
+    {"quit", Command::quit},
+
+};
+
 struct kernel_release {
     int kernel;
     int major;

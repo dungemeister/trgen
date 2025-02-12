@@ -9,6 +9,8 @@
 #include <netdb.h>
 #include "trgen_types.hpp"
 #include "pingStatistics.hpp"
+#include "core.hpp"
+#include "payload.hpp"
 
 struct icmp_pkt{
     struct icmphdr header;
@@ -32,41 +34,34 @@ const static kernel_release LINUX_ICMP_SOCKET_CAPABILITIES_RELEASE = {.kernel = 
                                                                .patch = 0}; //ICMP socket capabilities linux
 
 
-class Pinger{
+class Pinger: public Payload{
 public:
     
-    Pinger(std::string addr, std::vector<std::string> params): m_dst_addr(addr), m_pingStat() { parseParams(params); }
     Pinger(kernel_release &ker, std::vector<std::string> params): m_kernel_release(ker), m_pingStat() { parseParams(params); }
     Pinger(): m_kernel_release{}, m_pingStat() {}
     ~Pinger() {}
+    
+    void payload_run() override;
 
-    static void description() {
+    void description() override {
     std::cout << "ping - send and receive icmp echo requests with optional settings and data\n";
 }
 
-    void parseParams(std::vector<std::string> params);
-    void showParams();
-    void ping();
-    void pingRawSocket();
-    void pingUdpIcmp();
-    bool resolveHostname(std::string hostname, struct addrinfo *res);
-    void setSocketOptions(int socketFd);
-    void stop();
-    static void help() {
+    void help() override {
         std::cout << "*****PINGER*****\n";
         std::cout << "ping <addr> <options> \n";
         std::cout << "List of options:\n";
-        std::cout << "-c <count> - Count of icmp echo requests\n";
-        std::cout << "-i <interval> - time interval between packets\n";
-        std::cout << "-Q <TOS> - TOS value for IP packet\n";
+        std::cout << "-c <count> - Count of icmp echo requests (default value 5)\n";
+        std::cout << "-i <interval> - time interval between packets (default value 1.0sec)\n";
+        std::cout << "-Q <TOS> - TOS value for IP packet  (default value 0x0)\n";
         std::cout << "-b <ip_address> - bind source address to <ip_address>\n";
         std::cout << "****************\n";
 
-    };
+    } ;
 private:
     kernel_release m_kernel_release;
     
-
+    bool m_default_payload = true;
     std::string m_dst_addr;
     std::string m_dst_net_addr;
     std::string m_bind_addr;
@@ -77,7 +72,17 @@ private:
     long int m_tos = 0;
     long int m_packet_size = 64;
     timeval m_timeout = {.tv_sec = 1, .tv_usec = 0};
+    long m_interval = 1;
     PingStatistics m_pingStat;
+
+    void parseParams(std::vector<std::string> params);
+    void showParams();
+    void pingRawSocket();
+    void pingUdpIcmp();
+    bool resolveHostname(std::string hostname, struct addrinfo *res);
+    void setSocketOptions(int socketFd);
+    void stop();
+
     uint16_t packet_checksum(icmp_pkt &packet)
     {
         uint32_t res = 0;

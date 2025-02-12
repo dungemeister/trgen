@@ -3,11 +3,7 @@
 
 #include <string>
 #include <vector>
-
-struct message{
-    std::string command;
-    std::vector<std::string> params;
-};
+#include "trgen_types.hpp"
 
 class MainCli{
 public:

@@ -7,24 +7,16 @@
 #include <iostream>
 #include <sys/utsname.h>
 #include <vector>
-#include "pinger.hpp"
 #include "trgen_types.hpp"
 
 
 class Core{
 public:
-    
     Core() { get_kernel_release(); }
     ~Core() {}
     
-    static void help() {
-        Pinger::description();
-    }
-    
-    void ping(std::vector<std::string> params);
-    void traceroute();
-    void get_ifaces();
-    void generate_traffic();
+    void run(Task& task);
+
 private:
     kernel_release m_kernel_release = {0};
 
