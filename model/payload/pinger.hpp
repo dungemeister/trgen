@@ -72,14 +72,16 @@ private:
     long int m_tos = 0;
     long int m_packet_size = 64;
     timeval m_timeout = {.tv_sec = 1, .tv_usec = 0};
-    long m_interval = 1;
+    long m_interval_us = 1;
     PingStatistics m_pingStat;
 
     void parseParams(std::vector<std::string> params);
     void showParams();
     void pingRawSocket();
+    bool sendPacket(int& socketFd, sockaddr_in& remote_addr, icmp_pkt& packet);
+    bool receivePacket(int& socketFd, uint8_t* read_buf, timeval& sentTime);
     void pingUdpIcmp();
-    bool resolveHostname(std::string hostname, struct addrinfo *res);
+    bool resolveHostname(std::string hostname, addrinfo* res);
     void setSocketOptions(int socketFd);
     void stop();
 

@@ -4,23 +4,25 @@
 #include <memory.h>
 #include <ctime>
 #include <sys/time.h>
+#include <chrono>
+#include <thread>
 
 void Pinger::parseParams( std::vector<std::string> params) {
     for(int i = 0; i < params.size(); i++)
     {
         if(params[i] == "-c")
         {
-            m_count = atoi(params[i+1].c_str());
+            m_count = std::stod(params[i+1].c_str());
             i++;
         }
         else if(params[i] == "-t")
         {
-            m_ttl = atoi(params[i+1].c_str());
+            m_ttl = std::stod(params[i+1].c_str());
             i++;
         }
         else if(params[i] == "-p")
         {
-            m_packet_size = atoi(params[i+1].c_str());
+            m_packet_size = std::stod(params[i+1].c_str());
             i++;
         }
         else if(params[i] == "-b")
@@ -28,15 +30,20 @@ void Pinger::parseParams( std::vector<std::string> params) {
             m_bind_addr = params[i+1];
             i++;
         }
+        else if(params[i] == "-i")
+        {
+            m_interval_us = std::stod(params[i+1]);
+            i++;
+        }
         else if(params[i] == "-Q")
         {
             if(params[i+1].find("0x") != std::string::npos)
             {
-                m_tos = strtol(params[i+1].c_str(), NULL, 16);
+                m_tos = std::stol(params[i+1].c_str(), NULL, 16);
             }
             else
             {
-                m_tos = strtol(params[i+1].c_str(), NULL, 10);
+                m_tos = std::stol(params[i+1].c_str(), NULL, 10);
             }
             i++;
         }
@@ -57,6 +64,7 @@ void Pinger::showParams() {
     std::cout << " Dest address " << m_dst_addr;
     std::cout << " (" << m_dst_net_addr << ")";
     std::cout << " Count " << m_count;
+    std::cout << " Interval " << m_interval_us;
     std::cout << " TOS 0x" << m_tos;
     std::cout << " TTL " << m_ttl;
     std::cout << " ICMP packet size " << m_packet_size << "\n";
@@ -87,21 +95,17 @@ void Pinger::payload_run() {
 }
 
 void Pinger::pingRawSocket() {
-    iphdr *response_ip_hdr;
     icmp_pkt packet = {};
-    icmp_pkt *response_packet = NULL;
-    hostent *hostaddr;
     sockaddr_in remote_addr;
-    sockaddr_in recv_addr;
     int socketFd;
     uint8_t read_buf[m_packet_size];
     int n = 0;
-    struct addrinfo *res;
+    std::unique_ptr<addrinfo> res;
 
     remote_addr.sin_family = AF_INET;
     remote_addr.sin_port = htons(0);
 
-    if(!resolveHostname(m_dst_addr, res)) {
+    if(!resolveHostname(m_dst_addr, res.get())) {
         return;
     }
     // if(res != nullptr)
@@ -122,59 +126,85 @@ void Pinger::pingRawSocket() {
     packet.header.code = 0;
     packet.header.un.echo.id = htons(getpid() & 0xFFFF);
 
-    clock_t startClock =  clock();
+    auto startTime = std::chrono::steady_clock::now();
     for(int i = 1; i <= m_count; i++) {
+
+        auto now = std::chrono::steady_clock::now();
+        auto intervalTime = now + std::chrono::seconds(m_interval_us);
         
-        //TODO: set packet data
         struct timeval sentTime;
         gettimeofday(&sentTime, NULL);
         memcpy(packet.data, &sentTime, sizeof(sentTime));
-
-        // std::cout <<std::hex << "time sec " << sentTime.tv_sec << " time usec " << sentTime.tv_usec << "\n";
         packet.header.un.echo.sequence = htons(i);
         packet.header.checksum = packet_checksum(packet);
-        if( (n = sendto(socketFd, &packet, m_packet_size, 0, 
-                        (sockaddr*)&remote_addr, sizeof(remote_addr))) <= 0 ) {
-            perror("ERROR: send icmp packet\n");
-            return;
+
+        if(sendPacket(socketFd, remote_addr, packet))
+        {
+            receivePacket(socketFd, read_buf, sentTime);
         }
         else {
-            std::cout << "Sended " << n << " bytes to " << inet_ntoa(remote_addr.sin_addr) << " ";
-            m_pingStat.increaseSendedPackets();
+            break;
         }
         
-        uint recv_addr_len = sizeof(recv_addr);
-        double rtt = 0.0;
-        struct timeval currentTime;
-
-        gettimeofday(&currentTime, nullptr);
-        if ((n = recvfrom(socketFd, read_buf, m_packet_size, 0,
-                    (sockaddr*)&recv_addr, &recv_addr_len)) <= 0) {
-            std::cout << "Packet receive timeout\n";
-        } 
-        else {
-            gettimeofday(&currentTime, nullptr);
-            rtt = (currentTime.tv_sec - sentTime.tv_sec) * 1000.0 +
-             (currentTime.tv_usec - sentTime.tv_usec) / 1000.0;
-            std::cout << "Packet from " << inet_ntoa(recv_addr.sin_addr) << " received. Size " << n
-            << " bytes. rtt = " << rtt << "ms ";
-            response_packet = (icmp_pkt*)&read_buf[sizeof(iphdr)];
-
-            m_pingStat.increaseReceivedPackets();
-            m_pingStat.setMaxRtt(rtt);
-            m_pingStat.setMinRtt(rtt);
-            // response_ip_hdr = (iphdr *)&rbuffer[0];
-            // response_icmp = (icmp_pkt *)&rbuffer[sizeof(iphdr)];
-            // print_icmp_type(response_icmp->header.type);
-            print_icmp_type(response_packet->header.type);
-        }
-        
+        if(i != m_count)
+            std::this_thread::sleep_until(intervalTime);
     }
-    clock_t endClock =  clock();
-    m_pingStat.setExecTime(static_cast<double>(endClock - startClock) / CLOCKS_PER_SEC * 1000);
-
+    
+    // m_pingStat.setExecTime((static_cast<double>(endClock - startClock) / CLOCKS_PER_SEC) * 1000);
+    m_pingStat.setExecTime(std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime).count());
     close(socketFd);
     return;
+}
+
+bool Pinger::sendPacket(int& socketFd, sockaddr_in& remote_addr, icmp_pkt& packet) {
+    int n = 0;
+
+    // std::cout <<std::hex << "time sec " << sentTime.tv_sec << " time usec " << sentTime.tv_usec << "\n";
+
+    if( (n = sendto(socketFd, &packet, m_packet_size, 0, 
+                    (sockaddr*)&remote_addr, sizeof(remote_addr))) <= 0 ) {
+        perror("ERROR: send icmp packet\n");
+        return false;
+    }
+    else {
+        std::cout << "Sended " << n << " bytes to " << inet_ntoa(remote_addr.sin_addr) << " ";
+        m_pingStat.increaseSendedPackets();
+    }
+    return true;
+}
+
+bool Pinger::receivePacket(int& socketFd, uint8_t* read_buf, timeval& sentTime) {
+    sockaddr_in recv_addr;
+    uint recv_addr_len = sizeof(recv_addr);
+    int n = 0;
+    double rtt = 0.0;
+    struct timeval currentTime;
+    icmp_pkt *response_packet = nullptr;
+
+
+    gettimeofday(&currentTime, nullptr);
+    if ((n = recvfrom(socketFd, reinterpret_cast<void*>(read_buf), m_packet_size, 0,
+                (sockaddr*)&recv_addr, &recv_addr_len)) <= 0) {
+        std::cout << "Packet receive timeout\n";
+    } 
+    else {
+        gettimeofday(&currentTime, nullptr);
+        response_packet = reinterpret_cast<icmp_pkt*>(&read_buf[sizeof(iphdr)]);
+        std::cout << sentTime.tv_sec << " " << sentTime.tv_usec << "\n";
+        rtt = (currentTime.tv_sec - sentTime.tv_sec) * 1000.0 +
+            (currentTime.tv_usec - sentTime.tv_usec) / 1000.0;
+        std::cout << "Packet from " << inet_ntoa(recv_addr.sin_addr) << " received. Size " << n
+        << " bytes. rtt = " << rtt << "s ";
+
+        m_pingStat.increaseReceivedPackets();
+        m_pingStat.setMaxRtt(rtt);
+        m_pingStat.setMinRtt(rtt);
+        // response_ip_hdr = (iphdr *)&rbuffer[0];
+        // response_icmp = (icmp_pkt *)&rbuffer[sizeof(iphdr)];
+        // print_icmp_type(response_icmp->header.type);
+        print_icmp_type(response_packet->header.type);
+    }
+    return true;
 }
 
 void Pinger::pingUdpIcmp() {
@@ -207,14 +237,13 @@ void Pinger::pingUdpIcmp() {
     close(icmpSocket);
 }
 
-bool Pinger::resolveHostname(std::string hostname, addrinfo *res) {
+bool Pinger::resolveHostname(std::string hostname, addrinfo* res) {
     struct addrinfo hints = {};
     int status;
     if((status = getaddrinfo(hostname.c_str(), nullptr, &hints, &res)) != 0) {
         std::cerr << "Error resolving hostname: " << gai_strerror(status) << std::endl;
         return false;
     }
-
     for(addrinfo *p = res; p != nullptr; p = p->ai_next) {
         void *addr;
         char ipstr[INET6_ADDRSTRLEN];
