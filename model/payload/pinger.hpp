@@ -64,7 +64,7 @@ private:
     bool m_default_payload = true;
     std::string m_dst_addr;
     std::string m_dst_net_addr;
-    std::string m_bind_addr;
+    std::string m_bind_addr = "";
     std::string m_bind_interface;
     int m_count = 5;
     int m_count_left = m_count;
@@ -80,12 +80,15 @@ private:
     void pingRawSocket();
     bool sendPacket(int& socketFd, sockaddr_in& remote_addr, icmp_pkt& packet);
     bool receivePacket(int& socketFd, uint8_t* read_buf, timeval& sentTime);
+    bool bindSocketSourceAddr(int& socketFD, std::string srcAddr);
     void pingUdpIcmp();
     bool resolveHostname(std::string hostname, addrinfo* res);
+    bool resolveBindAddress(std::string address);
     void setSocketOptions(int socketFd);
+
     void stop();
 
-    uint16_t packet_checksum(icmp_pkt &packet)
+    uint16_t icmpPacketChecksum(icmp_pkt &packet)
     {
         uint32_t res = 0;
         uint16_t *ptr = reinterpret_cast<uint16_t*>(&packet);
@@ -107,7 +110,7 @@ private:
         return (~res) & 0xFFFF;
     }
 
-    void print_icmp_type(int type)
+    void printIcmpType(int type)
     {
         if(type == ICMP_ECHO)
             std:: cout << "ICMP Echo\n";

@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <chrono>
 #include <thread>
+#include <ifaddrs.h>
 
 void Pinger::parseParams( std::vector<std::string> params) {
     for(int i = 0; i < params.size(); i++)
@@ -108,6 +109,10 @@ void Pinger::pingRawSocket() {
     if(!resolveHostname(m_dst_addr, res.get())) {
         return;
     }
+    if(!resolveBindAddress(m_bind_addr)) {
+        return;
+    }
+
     // if(res != nullptr)
     //     freeaddrinfo(res);
 
@@ -120,6 +125,9 @@ void Pinger::pingRawSocket() {
     }
     setSocketOptions(socketFd);
 
+    if(!bindSocketSourceAddr(socketFd, m_bind_addr)) {
+        return;
+    }
     showParams();
 
     packet.header.type = ICMP_ECHO;
@@ -136,7 +144,7 @@ void Pinger::pingRawSocket() {
         gettimeofday(&sentTime, NULL);
         memcpy(packet.data, &sentTime, sizeof(sentTime));
         packet.header.un.echo.sequence = htons(i);
-        packet.header.checksum = packet_checksum(packet);
+        packet.header.checksum = icmpPacketChecksum(packet);
 
         if(sendPacket(socketFd, remote_addr, packet))
         {
@@ -181,8 +189,6 @@ bool Pinger::receivePacket(int& socketFd, uint8_t* read_buf, timeval& sentTime) 
     struct timeval currentTime;
     icmp_pkt *response_packet = nullptr;
 
-
-    gettimeofday(&currentTime, nullptr);
     if ((n = recvfrom(socketFd, reinterpret_cast<void*>(read_buf), m_packet_size, 0,
                 (sockaddr*)&recv_addr, &recv_addr_len)) <= 0) {
         std::cout << "Packet receive timeout\n";
@@ -202,7 +208,20 @@ bool Pinger::receivePacket(int& socketFd, uint8_t* read_buf, timeval& sentTime) 
         // response_ip_hdr = (iphdr *)&rbuffer[0];
         // response_icmp = (icmp_pkt *)&rbuffer[sizeof(iphdr)];
         // print_icmp_type(response_icmp->header.type);
-        print_icmp_type(response_packet->header.type);
+        printIcmpType(response_packet->header.type);
+    }
+    return true;
+}
+
+bool Pinger::bindSocketSourceAddr(int& socketFD, std::string srcAddr) {
+    if (!srcAddr.empty()) {
+        struct sockaddr_in sourceAddr;
+        sourceAddr.sin_family = AF_INET;
+        sourceAddr.sin_addr.s_addr = inet_addr(srcAddr.c_str());
+        if (bind(socketFD, (struct sockaddr*)&sourceAddr, sizeof(sourceAddr)) < 0) {
+            perror(" ERROR: bind source address\n");
+            return false;
+        }
     }
     return true;
 }
@@ -251,17 +270,44 @@ bool Pinger::resolveHostname(std::string hostname, addrinfo* res) {
             sockaddr_in *ipv4 = reinterpret_cast<sockaddr_in*>(p->ai_addr);
             addr = &ipv4->sin_addr;
             inet_ntop(AF_INET, addr, ipstr, sizeof(ipstr));
-            
-            if(m_bind_addr != "") {
-                if(m_bind_addr == ipstr) {
-                    m_dst_net_addr = ipstr;
-                }
-            }
-            else {
-                m_dst_net_addr = ipstr;
-            }
+            m_dst_net_addr = ipstr;
         }
 
+    }
+    return true;
+}
+
+bool Pinger::resolveBindAddress(std::string address) {
+    //TODO: implement functionality
+    if(m_bind_addr != "") {
+        ifaddrs* ifAddrs = nullptr;
+        ifaddrs *ifAddrsPtr = nullptr;
+        if(getifaddrs(&ifAddrs)) {
+            perror(" ERROR: get interfaces addresses");
+            return false;
+        }
+
+        for(ifAddrsPtr = ifAddrs; ifAddrsPtr != nullptr; ifAddrsPtr = ifAddrsPtr->ifa_next) {
+            if(ifAddrsPtr->ifa_addr == nullptr) continue;
+
+            if(ifAddrsPtr->ifa_addr->sa_family == AF_INET || ifAddrsPtr->ifa_addr->sa_family == AF_INET6) {
+                char addrBuffer[INET6_ADDRSTRLEN];
+                void *addrPtr;
+
+                if(ifAddrsPtr->ifa_addr->sa_family == AF_INET) {
+                    addrPtr = &(reinterpret_cast<sockaddr_in*>(ifAddrsPtr->ifa_addr))->sin_addr;
+                }
+                if(ifAddrsPtr->ifa_addr->sa_family == AF_INET6) {
+                    addrPtr = &(reinterpret_cast<sockaddr_in6*>(ifAddrsPtr->ifa_addr))->sin6_addr;
+                }
+                 inet_ntop(ifAddrsPtr->ifa_addr->sa_family, addrPtr, addrBuffer, sizeof(addrBuffer));
+                if(m_bind_addr == addrBuffer) {
+                    std::cout << addrBuffer << " on iface " << ifAddrsPtr->ifa_name << "\n";
+                    freeifaddrs(ifAddrs);
+                    return true;
+                }
+            }   
+        }
     }
     return true;
 }
