@@ -7,9 +7,8 @@
 #include <vector>
 #include <iostream>
 #include <netdb.h>
-#include "trgen_types.hpp"
+#include "trgenTypes.hpp"
 #include "pingStatistics.hpp"
-#include "core.hpp"
 #include "payload.hpp"
 
 struct icmp_pkt{
@@ -41,9 +40,9 @@ public:
     Pinger(): m_kernel_release{}, m_pingStat() {}
     ~Pinger() {}
     
-    void payload_run() override;
+    void payloadRun() override;
 
-    void description() override {
+    static void description() {
     std::cout << "ping - send and receive icmp echo requests with optional settings and data\n";
 }
 

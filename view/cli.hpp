@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "trgen_types.hpp"
+#include "trgenTypes.hpp"
 
 class MainCli{
 public:

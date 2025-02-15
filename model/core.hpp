@@ -2,13 +2,13 @@
 
 #define TRGEN_CORE_HPP
 
-#include <stdint.h>
 #include <netinet/ip_icmp.h>
 #include <iostream>
 #include <sys/utsname.h>
 #include <vector>
-#include "trgen_types.hpp"
-
+#include <memory>
+#include "trgenTypes.hpp"
+#include "helper.hpp"
 
 class Core{
 public:
@@ -39,6 +39,8 @@ private:
                 p++;
             }
         }
-    }    
+    }
+
+    std::unique_ptr<Payload> makePayload(Command type, kernel_release& ker, std::vector<std::string>& params);
 };
 #endif //TRGEN_CORE_HPP

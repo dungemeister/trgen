@@ -2,6 +2,8 @@
 
 #define TRGEN_TYPES_HPP
 #include <unordered_map>
+#include <string>
+#include <vector>
 
 struct message{
     std::string command;
@@ -23,6 +25,7 @@ struct Task{
 
 enum class Command {
     help = 0,
+    list,
     ping,
     traceroute,
     quit,
@@ -32,6 +35,7 @@ enum class Command {
 const std::unordered_map<std::string, Command> COMMAND_MAP = {
     {"help", Command::help},
     {"ping", Command::ping},
+    {"iflist", Command::list},
     {"traceroute", Command::traceroute},
     {"quit", Command::quit},
 
@@ -70,5 +74,13 @@ struct kernel_release {
 enum class exit_types {
     NEEDED_ROOT_PRIVILAGES = 1,
 
+};
+
+struct ifaceInfo{
+    std::string name;
+    std::string macAddr;
+    std::string ipAddr;
+    std::string state;
+    std::string nsName;
 };
 #endif //TRGEN_TYPES_HPP

@@ -71,7 +71,7 @@ void Pinger::showParams() {
     std::cout << " ICMP packet size " << m_packet_size << "\n";
 }
 
-void Pinger::payload_run() {
+void Pinger::payloadRun() {
     kernel_release k = {};
     if(!m_default_payload) {
         help();

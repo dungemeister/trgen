@@ -22,5 +22,7 @@ set(SOURCES
             ${CONTROLLER_DIR}/controller.cpp
             ${STATISTICS_DIR}/pingStatistics.cpp
             ${PAYLOAD_DIR}/pinger.cpp
+            ${PAYLOAD_DIR}/helper.cpp
+            ${PAYLOAD_DIR}/ifacesList.cpp
             )
 add_executable(${PROJECT_NAME} ${SOURCES})
