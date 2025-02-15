@@ -26,7 +26,7 @@ void Core::run(Task& task) {
 std::unique_ptr<Payload> Core::makePayload(Command type, kernel_release& ker, std::vector<std::string>& params) {
     switch(type) {
         case Command::list:
-            return std::make_unique<IfacesList>();
+            return std::make_unique<IfacesList>(params);
         case Command::ping:
             return std::make_unique<Pinger>(ker, params);
         case Command::help:

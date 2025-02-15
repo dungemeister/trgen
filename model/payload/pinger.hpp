@@ -33,6 +33,7 @@ const static kernel_release LINUX_ICMP_SOCKET_CAPABILITIES_RELEASE = {.kernel = 
                                                                .patch = 0}; //ICMP socket capabilities linux
 
 
+const int DEFAULT_PING_COUNT = 5;
 class Pinger: public Payload{
 public:
     
@@ -50,9 +51,9 @@ public:
         std::cout << "*****PINGER*****\n";
         std::cout << "ping <addr> <options> \n";
         std::cout << "List of options:\n";
-        std::cout << "-c <count> - Count of icmp echo requests (default value 5)\n";
-        std::cout << "-i <interval> - time interval between packets (default value 1.0sec)\n";
-        std::cout << "-Q <TOS> - TOS value for IP packet  (default value 0x0)\n";
+        std::cout << "-c <count> - Count of icmp echo requests (default value: " << DEFAULT_PING_COUNT << ")\n";
+        std::cout << "-i <interval> - time interval between packets (default value: 1.0sec)\n";
+        std::cout << "-Q <TOS> - TOS value for IP packet  (default value: 0x0)\n";
         std::cout << "-b <ip_address> - bind source address to <ip_address>\n";
         std::cout << "****************\n";
 
@@ -65,7 +66,7 @@ private:
     std::string m_dst_net_addr;
     std::string m_bind_addr = "";
     std::string m_bind_interface;
-    int m_count = 5;
+    int m_count = DEFAULT_PING_COUNT;
     int m_count_left = m_count;
     int m_ttl = 64;
     long int m_tos = 0;

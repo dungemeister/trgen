@@ -8,12 +8,35 @@
 #include "ifacesList.hpp"
 
 void IfacesList::payloadRun() {
-    parseIfaces(m_curNetns);
-    showIfaces();
+    if(m_default_payload) {
+        parseIfaces(m_curNetns);
+        showIfaces();
+    }
+    else {
+        help();
+    }
 }
 
 void IfacesList::help() {
-    std::cout << "List all interfaces in netns " << m_curNetns << "\n";
+    std::cout << "*****IFLIST*****\n";
+    std::cout << "iflist <options>\n";
+    std::cout << "List of options:\n";
+    std::cout << "-n - set required netns name (default value: default)\n";
+    std::cout << "****************\n";
+}
+
+void IfacesList::parseParams(std::vector<std::string>& params){
+    for(int i = 0; i < params.size(); i++) {
+        if(params[i] == "-n")
+        {
+            m_curNetns = params[i+1];
+            i++;
+        }
+        else {
+            if(params[i] == "help")
+                m_default_payload = false;
+        }
+    }
 }
 
 bool IfacesList::parseIfaces(const std::string& netnsName) {

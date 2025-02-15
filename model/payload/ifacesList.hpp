@@ -13,7 +13,7 @@
 
 class IfacesList: public Payload {
 public:    
-    IfacesList(): m_ifaces() {}
+    IfacesList(std::vector<std::string>& params): m_ifaces() { parseParams(params); }
     ~IfacesList() {}
     void payloadRun() override;
     void help() override;
@@ -24,7 +24,9 @@ public:
 private:
     std::vector<ifaceInfo> m_ifaces;
     std::string m_curNetns = "default";
+    bool m_default_payload = true;
 
+    void parseParams(std::vector<std::string>& params);
     bool parseIfaces(const std::string& netnsName);
     void showIfaces();
     void showIface(ifaceInfo& iface);
