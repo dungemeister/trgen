@@ -170,7 +170,7 @@ bool Pinger::sendPacket(int& socketFd, sockaddr_in& remote_addr, icmp_pkt& packe
     // std::cout <<std::hex << "time sec " << sentTime.tv_sec << " time usec " << sentTime.tv_usec << "\n";
 
     if( (n = sendto(socketFd, &packet, m_packet_size, 0, 
-                    (sockaddr*)&remote_addr, sizeof(remote_addr))) <= 0 ) {
+                    reinterpret_cast<sockaddr*>(&remote_addr), sizeof(remote_addr))) <= 0 ) {
         perror("ERROR: send icmp packet\n");
         return false;
     }
@@ -189,7 +189,7 @@ bool Pinger::receivePacket(int& socketFd, uint8_t* read_buf, timeval& sentTime) 
     struct timeval currentTime;
     icmp_pkt *response_packet = nullptr;
 
-    if ((n = recvfrom(socketFd, reinterpret_cast<void*>(read_buf), m_packet_size, 0,
+    if ((n = recvfrom(socketFd, static_cast<void*>(read_buf), m_packet_size, 0,
                 (sockaddr*)&recv_addr, &recv_addr_len)) <= 0) {
         std::cout << "Packet receive timeout\n";
     } 
@@ -218,7 +218,7 @@ bool Pinger::bindSocketSourceAddr(int& socketFD, std::string srcAddr) {
         struct sockaddr_in sourceAddr;
         sourceAddr.sin_family = AF_INET;
         sourceAddr.sin_addr.s_addr = inet_addr(srcAddr.c_str());
-        if (bind(socketFD, (struct sockaddr*)&sourceAddr, sizeof(sourceAddr)) < 0) {
+        if (bind(socketFD, reinterpret_cast<sockaddr*>(&sourceAddr), sizeof(sourceAddr)) < 0) {
             perror(" ERROR: bind source address\n");
             return false;
         }
@@ -280,7 +280,7 @@ bool Pinger::resolveHostname(std::string hostname, addrinfo* res) {
 bool Pinger::resolveBindAddress(std::string address) {
     //TODO: implement functionality
     if(m_bind_addr != "") {
-        ifaddrs* ifAddrs = nullptr;
+        ifaddrs *ifAddrs = nullptr;
         ifaddrs *ifAddrsPtr = nullptr;
         if(getifaddrs(&ifAddrs)) {
             perror(" ERROR: get interfaces addresses");
@@ -313,15 +313,15 @@ bool Pinger::resolveBindAddress(std::string address) {
 }
 
 void Pinger::setSocketOptions(int socketFd) {
-        if(setsockopt(socketFd, SOL_IP, IP_TTL, (void *)&m_ttl, sizeof(m_ttl))) {
+        if(setsockopt(socketFd, SOL_IP, IP_TTL, static_cast<void *>(&m_ttl), sizeof(m_ttl))) {
         perror("ERROR: set socket IP TTL\n");
         // return;
     }
-    if(setsockopt(socketFd, SOL_IP, IP_TOS, (void *)&m_tos, sizeof(m_tos))) {
+    if(setsockopt(socketFd, SOL_IP, IP_TOS, static_cast<void *>(&m_tos), sizeof(m_tos))) {
         perror("ERROR: set socket IP TOS\n");
         // return;
     }
-    if(setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO, (void *)&m_timeout, sizeof(m_timeout))) {
+    if(setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO, static_cast<void *>(&m_timeout), sizeof(m_timeout))) {
         perror("ERROR: set socket receive timeout\n");
         // return;
     }
