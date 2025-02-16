@@ -9,6 +9,8 @@
 #include <memory>
 #include "trgenTypes.hpp"
 #include "helper.hpp"
+#include "pinger.hpp"
+#include "ifacesList.hpp"
 
 class Core{
 public:

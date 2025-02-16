@@ -79,7 +79,7 @@ enum class exit_types {
 struct ifaceInfo{
     std::string name;
     std::string macAddr;
-    std::string ipAddr;
+    std::vector<std::pair<std::string, std::string>> ipAddr;
     std::string state;
     std::string nsName;
 };

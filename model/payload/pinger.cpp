@@ -158,8 +158,8 @@ void Pinger::pingRawSocket() {
             std::this_thread::sleep_until(intervalTime);
     }
     
-    // m_pingStat.setExecTime((static_cast<double>(endClock - startClock) / CLOCKS_PER_SEC) * 1000);
-    m_pingStat.setExecTime(std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime).count());
+    auto execTime = std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime).count();
+    m_pingStat.setExecTime(execTime);
     close(socketFd);
     return;
 }
@@ -200,7 +200,7 @@ bool Pinger::receivePacket(int& socketFd, uint8_t* read_buf, timeval& sentTime) 
         rtt = (currentTime.tv_sec - sentTime.tv_sec) * 1000.0 +
             (currentTime.tv_usec - sentTime.tv_usec) / 1000.0;
         std::cout << "Packet from " << inet_ntoa(recv_addr.sin_addr) << " received. Size " << n
-        << " bytes. rtt = " << rtt << "s ";
+        << " bytes. rtt = " << rtt << "ms ";
 
         m_pingStat.increaseReceivedPackets();
         m_pingStat.setMaxRtt(rtt);

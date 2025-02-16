@@ -1,6 +1,8 @@
 #include <ifaddrs.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <linux/if_packet.h>
+#include <net/if.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sched.h>
@@ -61,12 +63,33 @@ bool IfacesList::parseIfaces(const std::string& netnsName) {
     }
 
     for(ifAddrPtr = ifAddrs; ifAddrPtr != nullptr; ifAddrPtr = ifAddrPtr->ifa_next) {
-        if(ifAddrPtr->ifa_addr == nullptr) continue;
-        if(ifAddrPtr->ifa_addr->sa_family == AF_INET || ifAddrPtr->ifa_addr->sa_family == AF_INET6 ) {
-            ifaceInfo iface = {};
+        if(!ifAddrPtr->ifa_name) continue;
+        ifaceInfo iface = {};
+        iface.name = ifAddrPtr->ifa_name;
+        iface.nsName = netnsName;
+
+        
+        iface.state = ifAddrPtr->ifa_flags & IFF_UP;
+        if(ifAddrPtr->ifa_addr && ifAddrPtr->ifa_addr->sa_family == AF_PACKET) {
+            if(m_ifaces.count(ifAddrPtr->ifa_name) > 0) {
+                iface = m_ifaces[ifAddrPtr->ifa_name];
+            }
+            sockaddr_ll *l2Addr = reinterpret_cast<sockaddr_ll*>(ifAddrPtr->ifa_addr);
+            unsigned char *mac = l2Addr->sll_addr;
+            size_t bufLen = 18;
+            char macBuf[bufLen];
+            macToCharBuf(mac, macBuf, bufLen);
+            iface.macAddr = macBuf;
+        }
+        if(ifAddrPtr->ifa_addr && (ifAddrPtr->ifa_addr->sa_family == AF_INET ||
+                                   ifAddrPtr->ifa_addr->sa_family == AF_INET6 )) {
             char addrBuf[INET6_ADDRSTRLEN];
             void *addrPtr;
-            
+            char netmaskBuf[INET6_ADDRSTRLEN] = {};
+            in_addr *ipNetmask;
+            if(m_ifaces.count(ifAddrPtr->ifa_name) > 0) {
+                iface = m_ifaces[ifAddrPtr->ifa_name];
+            }
             if(ifAddrPtr->ifa_addr->sa_family == AF_INET) {
                 addrPtr = &(reinterpret_cast<sockaddr_in*>(ifAddrPtr->ifa_addr))->sin_addr;
             }
@@ -74,24 +97,57 @@ bool IfacesList::parseIfaces(const std::string& netnsName) {
                 addrPtr = &(reinterpret_cast<sockaddr_in6*>(ifAddrPtr->ifa_addr))->sin6_addr;
             }
             inet_ntop(ifAddrPtr->ifa_addr->sa_family, addrPtr, addrBuf, sizeof(addrBuf));
-            iface.ipAddr = addrBuf;
-            iface.name = ifAddrPtr->ifa_name;
-            iface.nsName = netnsName;
-            // ifAddrPtr->ifa_ifu
-            m_ifaces.push_back(iface);
+            
+            ipNetmask = &reinterpret_cast<sockaddr_in*>(ifAddrPtr->ifa_netmask)->sin_addr;
+            inet_ntop(ifAddrPtr->ifa_addr->sa_family, ipNetmask, netmaskBuf, sizeof(netmaskBuf));
+
+            iface.ipAddr.push_back(std::make_pair(addrBuf, convertNetmask(*reinterpret_cast<uint32_t*>(ipNetmask))));
+
         }
+        if(m_ifaces.count(ifAddrPtr->ifa_name) > 0)
+            m_ifaces[ifAddrPtr->ifa_name] = iface;
+        else
+            m_ifaces.insert(std::make_pair(ifAddrPtr->ifa_name, iface));
     }
+
+    setns(curNetnsFd, CLONE_NEWNET);
     freeifaddrs(ifAddrs);
+    close(netnsFd);
     return true;
 }
 
 void IfacesList::showIfaces() {
-    for(auto iface: m_ifaces) {
-        showIface(iface);
+    int i = 1;
+    for(auto it: m_ifaces) {
+        std::cout << i++ << "\t";
+        showIface(it.second);
     }
 }
 
 void IfacesList::showIface(ifaceInfo& iface) {
-        std::cout << iface.name << "\t" << iface.macAddr << "\t" << iface.ipAddr <<
-        "\t" << iface.nsName << "\t" << iface.state << "\n";
+        std::cout << iface.name << "\t" << iface.macAddr << "\t";
+        for(auto ip: iface.ipAddr) {
+            std::cout << ip.first << ip.second << " ";
+        }
+        std::cout << "\t" << iface.nsName << "\t" << iface.state << "\n";
+}
+
+void IfacesList::macToCharBuf(unsigned char *sll_addr, char *buf, size_t len){
+                snprintf(buf, len, "%02x:%02x:%02x:%02x:%02x:%02x", sll_addr[0],
+            sll_addr[1], sll_addr[2], sll_addr[3], sll_addr[4], sll_addr[5]);
+}
+
+std::string IfacesList::convertNetmask(uint32_t addr){
+    //Each byte in addr needs to be shifted in reverse
+    int i = 0;
+    int bytes = 0;
+    for(int j = 0; j < sizeof(uint32_t); j++) {
+        uint8_t byte = addr & 0xFF;
+        while(byte > 0) {
+            byte = byte << 1;
+            i++;
+        }
+        addr = addr >> 8;
+    }
+    return std::string("/" + std::to_string(i));
 }

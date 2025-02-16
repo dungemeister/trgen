@@ -2,8 +2,7 @@
 #define TRGEN_HELPER_HPP
 
 #include "trgenTypes.hpp"
-#include "pinger.hpp"
-#include "ifacesList.hpp"
+#include <payload.hpp>
 
 class Help: public Payload {
 public:
