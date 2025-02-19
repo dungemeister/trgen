@@ -7,7 +7,7 @@
 class Help: public Payload {
 public:
     Help() {}
-    Help(kernel_release& ker, std::vector<std::string>& params) {}
+    Help(KernelRelease& ker, std::vector<std::string>& params) {}
     ~Help() {}
     void payloadRun() override;
     void help() override {};

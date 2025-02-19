@@ -64,7 +64,7 @@ bool IfacesList::parseIfaces(const std::string& netnsName) {
 
     for(ifAddrPtr = ifAddrs; ifAddrPtr != nullptr; ifAddrPtr = ifAddrPtr->ifa_next) {
         if(!ifAddrPtr->ifa_name) continue;
-        ifaceInfo iface = {};
+        IfaceInfo iface = {};
         iface.name = ifAddrPtr->ifa_name;
         iface.nsName = netnsName;
 
@@ -124,7 +124,7 @@ void IfacesList::showIfaces() {
     }
 }
 
-void IfacesList::showIface(ifaceInfo& iface) {
+void IfacesList::showIface(IfaceInfo& iface) {
         std::cout << iface.name << "\t" << iface.macAddr << "\t";
         for(auto ip: iface.ipAddr) {
             std::cout << ip.first << ip.second << " ";

@@ -27,21 +27,21 @@ struct ping_params{
 
 };
 
-const static kernel_release LINUX_ICMP_SOCKET_CAPABILITIES_RELEASE = {.kernel = 2,
+const static KernelRelease LINUX_ICMP_SOCKET_CAPABILITIES_RELEASE = {.kernel = 2,
                                                                .major = 6,
                                                                .minor = 39,
                                                                .patch = 0}; //ICMP socket capabilities linux
-
 
 const int DEFAULT_PING_COUNT = 5;
 class Pinger: public Payload{
 public:
     
-    Pinger(kernel_release &ker, std::vector<std::string> params): m_kernel_release(ker), m_pingStat() { parseParams(params); }
+    Pinger(KernelRelease &ker, std::vector<std::string> params): m_kernel_release(ker), m_pingStat() { parseParams(params); }
     Pinger(): m_kernel_release{}, m_pingStat() {}
     ~Pinger() {}
     
     void payloadRun() override;
+    std::string updateView(std::string str);
 
     static void description() {
     std::cout << "ping - send and receive icmp echo requests with optional settings and data\n";
@@ -59,7 +59,7 @@ public:
 
     } ;
 private:
-    kernel_release m_kernel_release;
+    KernelRelease m_kernel_release;
     
     bool m_default_payload = true;
     std::string m_dst_addr;
@@ -86,8 +86,6 @@ private:
     bool resolveBindAddress(std::string address);
     void setSocketOptions(int socketFd);
 
-    void stop();
-
     uint16_t icmpPacketChecksum(icmp_pkt &packet)
     {
         uint32_t res = 0;
@@ -113,13 +111,13 @@ private:
     void printIcmpType(int type)
     {
         if(type == ICMP_ECHO)
-            std:: cout << "ICMP Echo\n";
+            sendFormatedStringToObservers("ICMP Echo\n");
         else if(type == ICMP_ECHOREPLY)
-            std:: cout << "ICMP Echoreply\n";
+            sendFormatedStringToObservers("ICMP Echoreply\n");
         else if(type == ICMP_DEST_UNREACH)
-            std:: cout << "ICMP Destination ureachable\n";
+            sendFormatedStringToObservers("ICMP Destination ureachable\n");
         else 
-            std::cout << type << "\n";
+            sendFormatedStringToObservers("%d \n", type);
     }
 };
 

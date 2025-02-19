@@ -3,10 +3,12 @@
 #include <unistd.h>
 #include <memory.h>
 #include <ctime>
+#include <sstream>
 #include <sys/time.h>
 #include <chrono>
 #include <thread>
 #include <ifaddrs.h>
+
 
 void Pinger::parseParams( std::vector<std::string> params) {
     for(int i = 0; i < params.size(); i++)
@@ -58,7 +60,6 @@ void Pinger::parseParams( std::vector<std::string> params) {
         }
     }
 
-
 }
 
 void Pinger::showParams() {
@@ -72,7 +73,6 @@ void Pinger::showParams() {
 }
 
 void Pinger::payloadRun() {
-    kernel_release k = {};
     if(!m_default_payload) {
         help();
         return;
@@ -86,13 +86,17 @@ void Pinger::payloadRun() {
     else {
         if(setuid(0) != 0) {
             perror(" ERROR: Yot need root privilagies to run with kernel without icmp socket capabilities\n");
-            exit(static_cast<int>(exit_types::NEEDED_ROOT_PRIVILAGES));
+            exit(static_cast<int>(ExitTypes::NEEDED_ROOT_PRIVILAGES));
         }
         pingRawSocket();
     }
     
     m_pingStat.showStatistics(m_dst_addr);
 
+}
+
+std::string Pinger::updateView(std::string str){
+    return "PINGER: " + str;
 }
 
 void Pinger::pingRawSocket() {
@@ -102,7 +106,6 @@ void Pinger::pingRawSocket() {
     uint8_t read_buf[m_packet_size];
     int n = 0;
     std::unique_ptr<addrinfo> res;
-
     remote_addr.sin_family = AF_INET;
     remote_addr.sin_port = htons(0);
 
@@ -120,7 +123,9 @@ void Pinger::pingRawSocket() {
 
     socketFd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     if(socketFd < 0) {
-        perror("ERROR: create RAW socket\n");
+        
+        // perror("ERROR: create RAW socket\n");
+        sendFormatedStringToObservers("ERROR: create RAW socket\n %s", strerror(errno));
         // return;
     }
     setSocketOptions(socketFd);
@@ -171,11 +176,17 @@ bool Pinger::sendPacket(int& socketFd, sockaddr_in& remote_addr, icmp_pkt& packe
 
     if( (n = sendto(socketFd, &packet, m_packet_size, 0, 
                     reinterpret_cast<sockaddr*>(&remote_addr), sizeof(remote_addr))) <= 0 ) {
-        perror("ERROR: send icmp packet\n");
+        // perror("ERROR: send icmp packet\n");
+        sendFormatedStringToObservers("ERROR: send icmp packet\n%s", strerror(errno));
         return false;
     }
     else {
-        std::cout << "Sended " << n << " bytes to " << inet_ntoa(remote_addr.sin_addr) << " ";
+        char out[128];
+        // sprintf(out, "Sended %d bytes to %s ",n, inet_ntoa(remote_addr.sin_addr));
+        // sendToObservers(out);
+        sendFormatedStringToObservers("Sended %d bytes to %s ",n, inet_ntoa(remote_addr.sin_addr));
+
+        // std::cout << "Sended " << n << " bytes to " << inet_ntoa(remote_addr.sin_addr) << " ";
         m_pingStat.increaseSendedPackets();
     }
     return true;
@@ -191,23 +202,19 @@ bool Pinger::receivePacket(int& socketFd, uint8_t* read_buf, timeval& sentTime) 
 
     if ((n = recvfrom(socketFd, static_cast<void*>(read_buf), m_packet_size, 0,
                 (sockaddr*)&recv_addr, &recv_addr_len)) <= 0) {
-        std::cout << "Packet receive timeout\n";
+        sendFormatedStringToObservers("Packet receive timeout\n");
     } 
     else {
         gettimeofday(&currentTime, nullptr);
         response_packet = reinterpret_cast<icmp_pkt*>(&read_buf[sizeof(iphdr)]);
-        std::cout << sentTime.tv_sec << " " << sentTime.tv_usec << "\n";
         rtt = (currentTime.tv_sec - sentTime.tv_sec) * 1000.0 +
             (currentTime.tv_usec - sentTime.tv_usec) / 1000.0;
-        std::cout << "Packet from " << inet_ntoa(recv_addr.sin_addr) << " received. Size " << n
-        << " bytes. rtt = " << rtt << "ms ";
+        sendFormatedStringToObservers("Packet from %s received. Size %d bytes. rtt %.3lfms ",
+        inet_ntoa(recv_addr.sin_addr), n, rtt);
 
         m_pingStat.increaseReceivedPackets();
         m_pingStat.setMaxRtt(rtt);
         m_pingStat.setMinRtt(rtt);
-        // response_ip_hdr = (iphdr *)&rbuffer[0];
-        // response_icmp = (icmp_pkt *)&rbuffer[sizeof(iphdr)];
-        // print_icmp_type(response_icmp->header.type);
         printIcmpType(response_packet->header.type);
     }
     return true;
@@ -219,7 +226,7 @@ bool Pinger::bindSocketSourceAddr(int& socketFD, std::string srcAddr) {
         sourceAddr.sin_family = AF_INET;
         sourceAddr.sin_addr.s_addr = inet_addr(srcAddr.c_str());
         if (bind(socketFD, reinterpret_cast<sockaddr*>(&sourceAddr), sizeof(sourceAddr)) < 0) {
-            perror(" ERROR: bind source address\n");
+            sendFormatedStringToObservers(" ERROR: bind source address\n%s", strerror(errno));
             return false;
         }
     }
@@ -232,12 +239,12 @@ void Pinger::pingUdpIcmp() {
     struct sockaddr_in remoteAddr = {};
 
     if((udpSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror(" ERROR: fail to open udp socket\n");
+        sendFormatedStringToObservers(" ERROR: fail to open udp socket\n%s", strerror(errno));
         return;
     }
     if((icmpSocket = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) < 0) {
         close(udpSocket);
-        perror(" ERROR: fail to open icmp raw socket\n");
+        sendFormatedStringToObservers(" ERROR: fail to open icmp raw socket\n%s", strerror(errno));
         return;
     }
 
@@ -245,8 +252,7 @@ void Pinger::pingUdpIcmp() {
     remoteAddr.sin_port = htons(0);
 
     if(inet_pton(AF_INET, m_dst_addr.c_str(), &remoteAddr.sin_addr) <= 0) {
-
-        perror(" ERROR: Invalid address\n");
+        sendFormatedStringToObservers(" ERROR: Invalid address\n%s", strerror(errno));
         close(udpSocket);
         close(icmpSocket);
     }
@@ -260,7 +266,8 @@ bool Pinger::resolveHostname(std::string hostname, addrinfo* res) {
     struct addrinfo hints = {};
     int status;
     if((status = getaddrinfo(hostname.c_str(), nullptr, &hints, &res)) != 0) {
-        std::cerr << "Error resolving hostname: " << gai_strerror(status) << std::endl;
+        char err[128];
+        sendFormatedStringToObservers("Error resolving hostname %s\n", gai_strerror(status));
         return false;
     }
     for(addrinfo *p = res; p != nullptr; p = p->ai_next) {
@@ -283,7 +290,7 @@ bool Pinger::resolveBindAddress(std::string address) {
         ifaddrs *ifAddrs = nullptr;
         ifaddrs *ifAddrsPtr = nullptr;
         if(getifaddrs(&ifAddrs)) {
-            perror(" ERROR: get interfaces addresses");
+            sendFormatedStringToObservers(" ERROR: get interfaces addresses %s\n", strerror(errno));
             return false;
         }
 
@@ -302,7 +309,7 @@ bool Pinger::resolveBindAddress(std::string address) {
                 }
                  inet_ntop(ifAddrsPtr->ifa_addr->sa_family, addrPtr, addrBuffer, sizeof(addrBuffer));
                 if(m_bind_addr == addrBuffer) {
-                    std::cout << addrBuffer << " on iface " << ifAddrsPtr->ifa_name << "\n";
+                    sendFormatedStringToObservers("%s on iface %s\n",addrBuffer, ifAddrsPtr->ifa_name);
                     freeifaddrs(ifAddrs);
                     return true;
                 }
@@ -313,16 +320,18 @@ bool Pinger::resolveBindAddress(std::string address) {
 }
 
 void Pinger::setSocketOptions(int socketFd) {
-        if(setsockopt(socketFd, SOL_IP, IP_TTL, static_cast<void *>(&m_ttl), sizeof(m_ttl))) {
-        perror("ERROR: set socket IP TTL\n");
+    if(setsockopt(socketFd, SOL_IP, IP_TTL, static_cast<void *>(&m_ttl), sizeof(m_ttl))) {
+        sendFormatedStringToObservers("ERROR: set socket IP TTL\n");
+
         // return;
     }
     if(setsockopt(socketFd, SOL_IP, IP_TOS, static_cast<void *>(&m_tos), sizeof(m_tos))) {
-        perror("ERROR: set socket IP TOS\n");
+        sendFormatedStringToObservers("ERROR: set socket IP TOS\n");
+
         // return;
     }
     if(setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO, static_cast<void *>(&m_timeout), sizeof(m_timeout))) {
-        perror("ERROR: set socket receive timeout\n");
+        sendFormatedStringToObservers("ERROR: set socket receive timeout\n");
         // return;
     }
 }

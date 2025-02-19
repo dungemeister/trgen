@@ -5,12 +5,17 @@
 #include <string>
 #include <vector>
 
+
+struct UpdateMessage{
+    std::string data;
+};
+
 struct message{
     std::string command;
     std::vector<std::string> params;
 };
 
-enum task_state{
+enum TaskState{
     
     RUNNING = 0,
     FINISHED = 1,
@@ -19,7 +24,7 @@ enum task_state{
 
 struct Task{
     message msg;
-    task_state state;
+    TaskState state;
     Task(): state(RUNNING) {}
 };
 
@@ -41,13 +46,13 @@ const std::unordered_map<std::string, Command> COMMAND_MAP = {
 
 };
 
-struct kernel_release {
+struct KernelRelease {
     int kernel;
     int major;
     int minor;
     int patch;
 
-    bool operator>=(const kernel_release& other) const {
+    bool operator>=(const KernelRelease& other) const {
         if(kernel == other.kernel && major == other.major && other.minor == minor && other.patch >= patch) return true;
         if(kernel == other.kernel && major == other.major && other.minor >= minor) return true;
         if(kernel == other.kernel && major >= other.major) return true;
@@ -56,7 +61,7 @@ struct kernel_release {
         return false;
     }
 
-    bool operator<=(const kernel_release& other) const {
+    bool operator<=(const KernelRelease& other) const {
         if(kernel == other.kernel && major == other.major && other.minor == minor && other.patch <= patch) return true;
         if(kernel == other.kernel && major == other.major && other.minor <= minor) return true;
         if(kernel == other.kernel && major <= other.major) return true;
@@ -64,19 +69,19 @@ struct kernel_release {
         
         return false;
     }
-    bool operator==(const kernel_release& other) const {
+    bool operator==(const KernelRelease& other) const {
         return (other.kernel == kernel && other.major == major &&
                 other.minor == minor && other.patch == patch);
     }
 
 };
 
-enum class exit_types {
+enum class ExitTypes {
     NEEDED_ROOT_PRIVILAGES = 1,
 
 };
 
-struct ifaceInfo{
+struct IfaceInfo{
     std::string name;
     std::string macAddr;
     std::vector<std::pair<std::string, std::string>> ipAddr;

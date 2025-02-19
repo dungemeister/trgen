@@ -3,14 +3,16 @@
 
 #include <string>
 #include <vector>
+#include <iostream>
 #include "trgenTypes.hpp"
+#include "observer.hpp"
 
-class MainCli{
+class MainCli: public Observer{
 public:
-    MainCli() {}
     ~MainCli() {}
 
     message handle_command();
+    void update(const UpdateMessage msg) {std::cout<<msg.data;};
 private:
 
 };

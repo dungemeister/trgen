@@ -23,14 +23,14 @@ public:
         std::cout << "iflist - list all ifaces in active netns\n";
     }
 private:
-    std::unordered_map<std::string, ifaceInfo> m_ifaces;
+    std::unordered_map<std::string, IfaceInfo> m_ifaces;
     std::string m_curNetns = "default";
     bool m_default_payload = true;
 
     void parseParams(std::vector<std::string>& params);
     bool parseIfaces(const std::string& netnsName);
     void showIfaces();
-    void showIface(ifaceInfo& iface);
+    void showIface(IfaceInfo& iface);
     void macToCharBuf(unsigned char *sll_addr, char *buf, size_t len);
     std::string convertNetmask(uint32_t addr);
 };
