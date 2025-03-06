@@ -5,9 +5,16 @@
 #include <string>
 #include <vector>
 
+enum class UpdateMessageTypes{
+    str = 0,
+    table,
+    graph,
+};
 
 struct UpdateMessage{
+    UpdateMessageTypes type = UpdateMessageTypes::str;
     std::string data;
+    
 };
 
 struct message{

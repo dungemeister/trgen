@@ -6,6 +6,7 @@ project(trgen)
 set(CONTROLLER_DIR controller)
 set(VIEW_DIR view)
 set(MODEL_DIR model)
+set(OBSERVER_DIR observer)
 set(STATISTICS_DIR ${VIEW_DIR}/statistics)
 set(PAYLOAD_DIR ${MODEL_DIR}/payload)
 
@@ -13,7 +14,10 @@ include_directories(${CONTROLLER_DIR}
                     ${VIEW_DIR}
                     ${MODEL_DIR}
                     ${STATISTICS_DIR}
-                    ${PAYLOAD_DIR})
+                    ${PAYLOAD_DIR}
+                    ${OBSERVER_DIR}
+                    
+                    )
 
 set(SOURCES 
             main.cpp

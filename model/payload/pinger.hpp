@@ -7,6 +7,7 @@
 #include <vector>
 #include <iostream>
 #include <netdb.h>
+#include "subject.hpp"
 #include "trgenTypes.hpp"
 #include "pingStatistics.hpp"
 #include "payload.hpp"

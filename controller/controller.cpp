@@ -11,7 +11,7 @@ void Controller::loop() {
     pingTask.msg.command = "ping";
     pingTask.msg.params = {"google.com"};
     
-    // m_core->run(pingTask);
+    m_core->run(pingTask);
 
     while(true) {
         Task task;

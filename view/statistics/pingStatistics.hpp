@@ -3,9 +3,9 @@
 
 #include <string>
 #include <iostream>
+#include "observer.hpp"
 
-
-class PingStatistics {
+class PingStatistics: public  Observer{
 public:
     PingStatistics() {}
     ~PingStatistics() {}
@@ -16,6 +16,7 @@ public:
     void setMinRtt(double rtt) { if(rtt < m_min_rtt || m_min_rtt == 0) m_min_rtt = rtt; }
     void setMaxRtt(double rtt) { if(rtt > m_max_rtt) m_max_rtt = rtt; }
     void setExecTime(double et) { m_execTime = et; }
+    void update(const UpdateMessage data) override { std::cout << data.data; }
 private:
     double m_max_rtt = 0;
     double m_min_rtt = 0;

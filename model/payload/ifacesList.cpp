@@ -8,6 +8,8 @@
 #include <sched.h>
 #include <iostream>
 #include "ifacesList.hpp"
+#include <errno.h>
+#include <string.h>
 
 void IfacesList::payloadRun() {
     if(m_default_payload) {
@@ -20,11 +22,11 @@ void IfacesList::payloadRun() {
 }
 
 void IfacesList::help() {
-    std::cout << "*****IFLIST*****\n";
-    std::cout << "iflist <options>\n";
-    std::cout << "List of options:\n";
-    std::cout << "-n - set required netns name (default value: default)\n";
-    std::cout << "****************\n";
+    sendFormatedStringToObservers("*****IFLIST*****\n");
+    sendFormatedStringToObservers("iflist <options>\n");
+    sendFormatedStringToObservers("List of options:\n");
+    sendFormatedStringToObservers("-n - set required netns name (default value: default)\n");
+    sendFormatedStringToObservers("****************\n");
 }
 
 void IfacesList::parseParams(std::vector<std::string>& params){
@@ -47,18 +49,18 @@ bool IfacesList::parseIfaces(const std::string& netnsName) {
     
     int netnsFd = open(("/var/run/netns/" + netnsName).c_str(), O_RDONLY);
     if(netnsFd < 0) {
-        perror((" ERROR: open netns " + netnsName).c_str());
+        sendFormatedStringToObservers(" ERROR: open netns %s\n%s", netnsName, strerror(errno));
         // return false;
     }
     
     auto curNetnsFd = setns(netnsFd, CLONE_NEWNET);
     if(curNetnsFd < 0) {
-        perror((" ERROR: switch to netns " + netnsName).c_str());
+        sendFormatedStringToObservers(" ERROR: switch to netns  %s\n%s", netnsName, strerror(errno));
         // return false;
     }
 
     if(getifaddrs(&ifAddrs) < 0) {
-        perror(" ERROR: get network interfaces\n");
+        sendFormatedStringToObservers(" ERROR: get network interfaces %s\n%s", netnsName, strerror(errno));
         return false;
     }
 
@@ -120,6 +122,7 @@ void IfacesList::showIfaces() {
     int i = 1;
     for(auto it: m_ifaces) {
         std::cout << i++ << "\t";
+        sendFormatedStringToObservers("%d\t", i++);
         showIface(it.second);
     }
 }
@@ -127,9 +130,9 @@ void IfacesList::showIfaces() {
 void IfacesList::showIface(IfaceInfo& iface) {
         std::cout << iface.name << "\t" << iface.macAddr << "\t";
         for(auto ip: iface.ipAddr) {
-            std::cout << ip.first << ip.second << " ";
+            sendFormatedStringToObservers("%s/%s ", ip.first, ip.second);
         }
-        std::cout << "\t" << iface.nsName << "\t" << iface.state << "\n";
+        sendFormatedStringToObservers("\t%s\t%s\n", iface.nsName, iface.state);
 }
 
 void IfacesList::macToCharBuf(unsigned char *sll_addr, char *buf, size_t len){

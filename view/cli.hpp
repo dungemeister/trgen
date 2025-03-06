@@ -6,12 +6,11 @@
 #include <iostream>
 #include "trgenTypes.hpp"
 #include "observer.hpp"
+#include "view.hpp"
 
-class MainCli: public Observer{
+class MainCli: public Observer, public View{
 public:
     ~MainCli() {}
-
-    message handle_command();
     void update(const UpdateMessage msg) {std::cout<<msg.data;};
 private:
 
