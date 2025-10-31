@@ -89,24 +89,27 @@ private:
 
     uint16_t icmpPacketChecksum(icmp_pkt &packet)
     {
-        uint32_t res = 0;
-        uint16_t *ptr = reinterpret_cast<uint16_t*>(&packet);
-        int len = sizeof(icmp_pkt);
-        //checksum part for header
-        for(int i = 0; len > 1; len -= 2)
-        {
-            res += *ptr;
-            ptr++;
-        }
-        if(len == 1)
-        {
-            res += *(uint8_t *)ptr;
+        uint32_t sum = 0;
+        auto size = sizeof(icmp_pkt);
+        uint8_t* buffer = reinterpret_cast<uint8_t*>(&packet);
+
+        // Суммируем 16-битные слова
+        for (size_t i = 0; i < size; i += 2) {
+            if (i + 1 < size) {
+                sum += (static_cast<uint16_t>(buffer[i]) << 8) | buffer[i + 1];
+            } else {
+                // Обработка нечётного байта
+                sum += static_cast<uint16_t>(buffer[i]) << 8;
+            }
         }
 
-        while (res >> 16) {
-            res = (res & 0xFFFF) + (res >> 16);
+        // Складываем переносы
+        while (sum >> 16) {
+            sum = (sum & 0xFFFF) + (sum >> 16);
         }
-        return (~res) & 0xFFFF;
+
+        // Инвертируем результат
+        return static_cast<uint16_t>(~sum);
     }
 
     void printIcmpType(int type)

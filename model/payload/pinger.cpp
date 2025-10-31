@@ -8,7 +8,7 @@
 #include <chrono>
 #include <thread>
 #include <ifaddrs.h>
-
+#include <arpa/inet.h>
 
 void Pinger::parseParams( std::vector<std::string> params) {
     for(int i = 0; i < params.size(); i++)
@@ -90,7 +90,6 @@ void Pinger::payloadRun() {
         }
         pingRawSocket();
     }
-    
     m_pingStat.showStatistics(m_dst_addr);
 
 }

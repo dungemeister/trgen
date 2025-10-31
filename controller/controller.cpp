@@ -5,7 +5,7 @@
 
 void Controller::loop() {
     
-    m_core->addObserver(std::weak_ptr<Observer>(m_cli));
+    m_core->addObserver(m_cli);
 
     Task pingTask = {};
     pingTask.msg.command = "ping";

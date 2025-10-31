@@ -1,4 +1,4 @@
-## Project desciption
+## Desciption
 
     This project is a console app for network traffic generation. It consists of few main parts:
      - ping

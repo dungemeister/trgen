@@ -1,7 +1,9 @@
-cmake_minimum_required(VERSION 3.5)
-set(CMAKE_CXX_STANDARD 14)
+cmake_minimum_required(VERSION 3.13)
 
 project(trgen)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CONTROLLER_DIR controller)
 set(VIEW_DIR view)
@@ -29,4 +31,5 @@ set(SOURCES
             ${PAYLOAD_DIR}/helper.cpp
             ${PAYLOAD_DIR}/ifacesList.cpp
             )
+
 add_executable(${PROJECT_NAME} ${SOURCES})

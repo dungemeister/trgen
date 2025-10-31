@@ -5,6 +5,10 @@
 
 void Core::run(Task& task) {
     std::string cmd_str = task.msg.command;
+    if(COMMAND_MAP.find(cmd_str) == COMMAND_MAP.end()){
+        std::cerr << "Unknown command: " << cmd_str << "\n";
+        return;
+    } 
     if(COMMAND_MAP.at(cmd_str) == Command::quit)
         exit(0);
     
