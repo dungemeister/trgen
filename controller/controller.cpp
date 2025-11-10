@@ -9,7 +9,7 @@ void Controller::loop() {
 
     Task pingTask = {};
     pingTask.msg.command = "ping";
-    pingTask.msg.params = {"google.com"};
+    pingTask.msg.params = {"google.com", "-c", "2"};
     
     m_core->run(pingTask);
 
