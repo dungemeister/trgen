@@ -148,7 +148,7 @@ void Pinger::pingRawSocket() {
         gettimeofday(&sentTime, NULL);
         memcpy(packet.data, &sentTime, sizeof(sentTime));
         packet.header.un.echo.sequence = htons(i);
-        packet.header.checksum = icmpPacketChecksum(packet);
+        packet.header.checksum = htons(icmpPacketChecksum(packet));
 
         if(sendPacket(socketFd, remote_addr, packet))
         {
@@ -160,6 +160,7 @@ void Pinger::pingRawSocket() {
         
         if(i != m_count)
             std::this_thread::sleep_until(intervalTime);
+        packet.header.checksum = 0x0;
     }
     
     auto execTime = std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime).count();

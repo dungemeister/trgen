@@ -96,7 +96,9 @@ private:
         // Суммируем 16-битные слова
         for (size_t i = 0; i < size; i += 2) {
             if (i + 1 < size) {
-                sum += (static_cast<uint16_t>(buffer[i]) << 8) | buffer[i + 1];
+                uint16_t tmp = (static_cast<uint16_t>(buffer[i]) << 8) | buffer[i + 1];
+                printf("0x%04x\n", tmp);
+                sum += tmp;
             } else {
                 // Обработка нечётного байта
                 sum += static_cast<uint16_t>(buffer[i]) << 8;
