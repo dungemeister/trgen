@@ -1,5 +1,5 @@
-#ifndef TRGEN_SUBJECT_HPP
-#define TRGEN_SUBJECT_HPP
+#ifndef TRGEN_PUBLISHER_HPP
+#define TRGEN_PUBLISHER_HPP
 
 #include "observer.hpp"
 #include <vector>
@@ -8,9 +8,9 @@
 #include <functional>
 #include <algorithm>
 
-class Subject {
+class Publisher {
 public:
-    ~Subject()=default;
+    ~Publisher()=default;
 
     void addObserver(std::weak_ptr<Observer> obs) { m_observers.push_back(obs); }
     void removeObserver(std::weak_ptr<Observer> obs) {
@@ -53,4 +53,4 @@ public:
 private:
     std::vector<std::weak_ptr<Observer>> m_observers;
 };
-#endif
+#endif //TRGEN_PUBLISHER_HPP

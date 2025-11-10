@@ -7,7 +7,7 @@
 #include <vector>
 #include <iostream>
 #include <netdb.h>
-#include "subject.hpp"
+#include "publisher.hpp"
 #include "trgenTypes.hpp"
 #include "pingStatistics.hpp"
 #include "payload.hpp"
@@ -97,7 +97,6 @@ private:
         for (size_t i = 0; i < size; i += 2) {
             if (i + 1 < size) {
                 uint16_t tmp = (static_cast<uint16_t>(buffer[i]) << 8) | buffer[i + 1];
-                printf("0x%04x\n", tmp);
                 sum += tmp;
             } else {
                 // Обработка нечётного байта

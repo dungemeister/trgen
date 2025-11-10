@@ -2,9 +2,9 @@
 #define TRGEN_PAYLOAD_HPP
 #include <string>
 #include <memory>
-#include "subject.hpp"
+#include "publisher.hpp"
 
-class Payload: public Subject {
+class Payload: public Publisher {
 public:
     virtual ~Payload() {} ;
     virtual void payloadRun() = 0;
